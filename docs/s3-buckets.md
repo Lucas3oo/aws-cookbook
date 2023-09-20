@@ -23,15 +23,9 @@ The bucket policy must allow s3:PutObject access for the logging service princip
         Version: 2012-10-17
         Statement:
           - Action:
-              - s3:GetBucketAcl
-            Effect: Allow
-            Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}'
-            Principal:
-              Service: [cloudtrail.amazonaws.com]
-          - Action:
               - s3:PutObject
             Effect: Allow
-            Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}/AWSLogs/${AWS::AccountId}/*'
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}/AWSLogs/*'
             Principal:
               Service: [logging.s3.amazonaws.com]
             Condition:
