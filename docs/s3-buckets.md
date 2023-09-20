@@ -10,6 +10,107 @@ CloudTrail does not deliver logs for requests that fail authentication (in which
 However, it does include logs for requests in which authorization fails (AccessDenied) and requests that are made by anonymous users.
 
 ```yaml
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Bucket with cloud trail log demo
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: slrk-my-demo-bucket2
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref S3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: DenyNonTLSRequests
+            Effect: Deny
+            Action: s3:*
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${S3Bucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${S3Bucket}/*"
+            Principal: "*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  AccessLogsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${S3BucketName}-s3-cloud-trail-logs"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Description
+          Value: S3 bucket for the S3 cloud trail log.
+
+  AccessLogsS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AccessLogsS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetBucketAcl
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}"
+            Principal:
+              Service: [cloudtrail.amazonaws.com]
+          - Action:
+              - s3:PutObject
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}/*"
+            Principal:
+              Service: [cloudtrail.amazonaws.com]
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn:
+      - AccessLogsS3BucketPolicy
+    Properties:
+      EnableLogFileValidation: true
+      EventSelectors:
+        - DataResources:
+            - Type: AWS::S3::Object
+              Values:
+                - !Sub "arn:${AWS::Partition}:s3:::${S3Bucket}/"
+          IncludeManagementEvents: false
+          # Capture read-only events for the bucket.
+          ReadWriteType: ReadOnly
+      IsLogging: true
+      IsMultiRegionTrail: false
+      IsOrganizationTrail: false
+      S3BucketName: !Ref AccessLogsS3Bucket
+
 ```
 
 ### Server access log
