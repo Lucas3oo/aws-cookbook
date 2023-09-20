@@ -3,6 +3,8 @@
 ## Logging
 Recommendation is that you use CloudTrail for logging bucket-level and object-level actions for your Amazon S3 resources.
 
+https://docs.aws.amazon.com/AmazonS3/latest/userguide/logging-with-S3.html
+
 ### CloudTrail logging for S3
 Use CloudTrail for S3 API calls. CloudTrail captures a subset of API calls for Amazon S3 as events.
 
