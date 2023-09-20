@@ -3,7 +3,15 @@
 ## Logging
 Recommendation is that you use CloudTrail for logging bucket-level and object-level actions for your Amazon S3 resources.
 
+### CloudTrail logging for S3
+Use CloudTrail for S3 API calls. CloudTrail captures a subset of API calls for Amazon S3 as events.
+
+CloudTrail does not deliver logs for requests that fail authentication (in which the provided credentials are not valid). 
+However, it does include logs for requests in which authorization fails (AccessDenied) and requests that are made by anonymous users.
+
+
 ### Server access log
+Server access logging is "best effort" buy AWS so better use CloudTrail instead for access logging. Only benefit is that server access logging logs authentication failure.
 Access logs for a bucket is best saved in a target bucket, that is another bucket in same account and same region. 
 The target bucket must not have a default retention period configuration. Your target bucket should not have server access logging enabled.
 
@@ -35,10 +43,4 @@ The bucket policy must allow s3:PutObject access for the logging service princip
                 aws:SourceArn: !Sub 'arn:aws:s3:::${S3Bucket}'
 
 ```
-
-### Audit trail for API calls for S3
-Use CloudTrail for S3 API calls. CloudTrail captures a subset of API calls for Amazon S3 as events.
-
-CloudTrail does not deliver logs for requests that fail authentication (in which the provided credentials are not valid). 
-However, it does include logs for requests in which authorization fails (AccessDenied) and requests that are made by anonymous users.
 
