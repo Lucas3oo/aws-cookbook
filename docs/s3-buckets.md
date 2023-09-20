@@ -9,6 +9,8 @@ Use CloudTrail for S3 API calls. CloudTrail captures a subset of API calls for A
 CloudTrail does not deliver logs for requests that fail authentication (in which the provided credentials are not valid). 
 However, it does include logs for requests in which authorization fails (AccessDenied) and requests that are made by anonymous users.
 
+```yaml
+```
 
 ### Server access log
 Server access logging is "best effort" buy AWS so better use CloudTrail instead for access logging. Only benefit is that server access logging logs authentication failure.
@@ -23,6 +25,67 @@ The bucket policy on the target bucket needs to grant access to the logging serv
 The bucket policy must allow s3:PutObject access for the logging service principal.
 
 ```yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Bucket log demo
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: slrk-my-demo-bucket
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Ref S3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogsS3Bucket
+        LogFilePrefix: awsAccessLogs
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Sid: DenyNonTLSRequests
+            Effect: Deny
+            Action: s3:*
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${S3Bucket}"
+              - !Sub "arn:${AWS::Partition}:s3:::${S3Bucket}/*"
+            Principal: "*"
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  AccessLogsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${S3BucketName}-s3-access-logs"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Description
+          Value: S3 bucket for the S3 access log.
+
   AccessLogsS3BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -33,14 +96,13 @@ The bucket policy must allow s3:PutObject access for the logging service princip
           - Action:
               - s3:PutObject
             Effect: Allow
-            Resource: !Sub 'arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}/AWSLogs/*'
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${AccessLogsS3Bucket}/*"
             Principal:
               Service: [logging.s3.amazonaws.com]
             Condition:
               StringEquals:
                 aws:SourceAccount: !Ref AWS::AccountId
               ArnLike:
-                aws:SourceArn: !Sub 'arn:aws:s3:::${S3Bucket}'
-
+                aws:SourceArn: !GetAtt S3Bucket.Arn
 ```
 
