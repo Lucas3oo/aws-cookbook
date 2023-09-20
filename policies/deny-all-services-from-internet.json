@@ -1,0 +1,19 @@
+// Deny all access to AWS services except comming from below IP addresses
+// Useful to assign to developers that use access keys to connect to AWS from their workstations.
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "deny-all-services-from-internet",
+            "Effect": "Deny",
+            "Action": "*",
+            "Resource": "*",
+            "Condition": {
+                "NotIpAddress": {
+                    "aws:sourceIp": [
+                        "188.188.188.188"                    ]
+                }
+            }
+        }
+    ]
+}
