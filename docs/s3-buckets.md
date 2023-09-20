@@ -24,6 +24,8 @@ Only server-side encryption with Amazon S3 managed keys (SSE-S3) can be used on 
 The bucket policy on the target bucket needs to grant access to the logging service principal (logging.s3.amazonaws.com) for access log delivery.
 The bucket policy must allow s3:PutObject access for the logging service principal.
 
+It can take hours before the log shows up.
+
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
 Description: Bucket log demo
